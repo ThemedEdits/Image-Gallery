@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Filterable Gallery</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4a6fa5;
+            --secondary-color: #ff9e00;
+            --dark-color: #1a1a2e;
+            --light-color: #f8f9fa;
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--dark-color);
+            color: var(--light-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            display: inline-block;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.8;
+            max-width: 600px;
+            margin: 0 auto 2rem;
+        }
+
+        .filter-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .filter-btn {
+            padding: 0.75rem 1.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--light-color);
+            border-radius: 50px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+        }
+
+        .filter-btn:hover,
+        .filter-btn.active {
+            background: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(74, 111, 165, 0.3);
+        }
+
+        .filter-btn i {
+            font-size: 0.9rem;
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .gallery-item {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transition: var(--transition);
+            aspect-ratio: 1/1;
+        }
+
+        .gallery-item:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: var(--transition);
+        }
+
+        /* Gaslight Effect */
+        .gallery-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at var(--x) var(--y),
+                    rgba(255, 255, 255, 0.3) 0%,
+                    rgba(255, 255, 255, 0) 70%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .gallery-item:hover::before {
+            opacity: 1;
+        }
+
+        .item-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 1.5rem;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+            transform: translateY(100%);
+            transition: var(--transition);
+            z-index: 1;
+        }
+
+        .gallery-item:hover .item-info {
+            transform: translateY(0);
+        }
+
+        .item-title {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .item-category {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: var(--primary-color);
+            border-radius: 50px;
+            font-size: 0.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .action-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .action-btn:hover {
+            background: var(--secondary-color);
+            transform: scale(1.1);
+        }
+
+        .no-results {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 3rem;
+            display: none;
+        }
+
+        .no-results.show {
+            display: block;
+        }
+
+        .search-container {
+            max-width: 500px;
+            margin: 0 auto 2rem;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            padding-left: 3rem;
+            border-radius: 50px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        .search-input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 0 2px var(--primary-color);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* Lightbox styles */
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .lightbox.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .lightbox-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 90%;
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+        }
+
+        .lightbox.active .lightbox-content {
+            transform: scale(1);
+        }
+
+        .lightbox-content img {
+            width: 100%;
+            height: auto;
+            max-height: 90vh;
+            object-fit: contain;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .close-lightbox {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            z-index: 1001;
+        }
+
+        .close-lightbox:hover {
+            transform: scale(1.2);
+        }
+
+        .lightbox-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            padding: 1rem;
+            transition: all 0.2s ease;
+            z-index: 1001;
+        }
+
+        .lightbox-nav:hover {
+            transform: translateY(-50%) scale(1.2);
+        }
+
+        .lightbox-prev {
+            left: 20px;
+        }
+
+        .lightbox-next {
+            right: 20px;
+        }
+
+        .lightbox-counter {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 1rem;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 15px;
+            border-radius: 20px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes zoomIn {
+            from {
+                transform: scale(0.8);
+            }
+
+            to {
+                transform: scale(1);
+            }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+
+            .lightbox-prev {
+                left: 10px;
+                top: 80%;
+            }
+
+            .lightbox-next {
+                right: 10px;
+                top: 80%;
+            }
+
+            .gallery {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                gap: 1.5rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .filter-buttons {
+                gap: 0.5rem;
+                padding-top: 20px;
+
+            }
+
+            .filter-btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .gallery {
+                grid-template-columns: 1fr;
+            }
+
+            .filter-buttons {
+                overflow-x: auto;
+                padding-bottom: 1rem;
+                scrollbar-width: none;
+            }
+
+            .filter-buttons::-webkit-scrollbar {
+                display: none;
+            }
+
+            .filter-btn {
+                flex-shrink: 0;
+            }
+        }
+
+        /* Animation for items */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .gallery-item {
+            animation: fadeIn 0.5s ease-out forwards;
+            opacity: 0;
+        }
+
+        .gallery-item:nth-child(1) {
+            animation-delay: 0.1s;
+        }
+
+        .gallery-item:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .gallery-item:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+
+        .gallery-item:nth-child(4) {
+            animation-delay: 0.4s;
+        }
+
+        .gallery-item:nth-child(5) {
+            animation-delay: 0.5s;
+        }
+
+        .gallery-item:nth-child(6) {
+            animation-delay: 0.6s;
+        }
+
+        .gallery-item:nth-child(7) {
+            animation-delay: 0.7s;
+        }
+
+        .gallery-item:nth-child(8) {
+            animation-delay: 0.8s;
+        }
+
+        .gallery-item:nth-child(9) {
+            animation-delay: 0.9s;
+        }
+
+        .gallery-item:nth-child(10) {
+            animation-delay: 1s;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Modern Image Gallery</h1>
+            <p class="subtitle">Browse through our collection of stunning images with interactive gaslight effect and
+                smooth animations</p>
+
+            <div class="search-container">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" class="search-input" placeholder="Search images...">
+            </div>
+
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-filter="all">
+                    <i class="fas fa-th"></i> All
+                </button>
+                <button class="filter-btn" data-filter="nature">
+                    <i class="fas fa-tree"></i> Nature
+                </button>
+                <button class="filter-btn" data-filter="architecture">
+                    <i class="fas fa-building"></i> Architecture
+                </button>
+                <button class="filter-btn" data-filter="people">
+                    <i class="fas fa-user"></i> People
+                </button>
+                <button class="filter-btn" data-filter="animals">
+                    <i class="fas fa-paw"></i> Animals
+                </button>
+                <button class="filter-btn" data-filter="food">
+                    <i class="fas fa-utensils"></i> Food
+                </button>
+            </div>
+        </header>
+
+        <div class="gallery">
+            <!-- Nature -->
+            <div class="gallery-item" data-category="nature">
+                <img src="photo-1426604966848-d7adac402bff.avif" alt="Mountain landscape">
+                <div class="item-info">
+                    <span class="item-category">Nature</span>
+                    <h3 class="item-title">Mountain Majesty</h3>
+                    <p>Breathtaking views of mountain ranges at sunrise</p>
+                    <div class="item-actions">
+                        <button class="action-btn"><i class="far fa-heart"></i></button>
+                        <button class="action-btn"><i class="fas fa-share-alt"></i></button>
+                        <button class="action-btn"><i class="fas fa-expand"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Architecture -->
+            <div class="gallery-item" data-category="architecture">
+                <img src="ar1.avif" alt="Modern building">
+                <div class="item-info">
+                    <span class="item-category">Architecture</span>
+                    <h3 class="item-title">Urban Design</h3>
+                    <p>Contemporary architecture with clean lines</p>
+                    <div class="item-actions">
+                        <button class="action-btn"><i class="far fa-heart"></i></button>
+                        <button class="action-btn"><i class="fas fa-share-alt"></i></button>
+                        <button class="action-btn"><i class="fas fa-expand"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- People -->
+            <div class="gallery-item" data-category="people">
+                <img src="pp1.avif" alt="Portrait">
+                <div class="item-info">
+                    <span class="item-category">People</span>
+                    <h3 class="item-title">Human Expressions</h3>
+                    <p>Capturing raw human emotion and beauty</p>
+                    <div class="item-actions">
+                        <button class="action-btn"><i class="far fa-heart"></i></button>
+                        <button class="action-btn"><i class="fas fa-share-alt"></i></button>
+                        <button class="action-btn"><i class="fas fa-expand"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Animals -->
+            <div class="gallery-item" data-category="animals">
+                <img src="animal1.avif" alt="Wild animal">
+                <div class="item-info">
+                    <span class="item-category">Animals</span>
+                    <h3 class="item-title">Wild Kingdom</h3>
+                    <p>Powerful wildlife in their natural habitat</p>
+                    <div class="item-actions">
+                        <button class="action-btn"><i class="far fa-heart"></i></button>
+                        <button class="action-btn"><i class="fas fa-share-alt"></i></button>
+                        <button class="action-btn"><i class="fas fa-expand"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Food -->
+            <div class="gallery-item" data-category="food">
+                <img src="https://source.unsplash.com/random/600x600/?food,gourmet" alt="Gourmet food">
+                <div class="item-info">
+                    <span class="item-category">Food</span>
+                    <h3 class="item-title">Culinary Art</h3>
+                    <p>Exquisitely prepared dishes that delight the senses</p>
+                    <div class="item-actions">
+                        <button class="action-btn"><i class="far fa-heart"></i></button>
+                        <button class="action-btn"><i class="fas fa-share-alt"></i></button>
+                        <button class="action-btn"><i class="fas fa-expand"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nature -->
+            <div class="gallery-item" data-category="nature">
+                <img src="image.png" alt="Waterfall">
+                <div class="item-info">
+                    <span class="item-category">Nature</span>
+                    <h3 class="item-title">Falling Waters</h3>
+                    <p>The raw power and beauty of cascading waterfalls</p>
+                    <div class="item-actions">
+                        <button class="action-btn"><i class="far fa-heart"></i></button>
+                        <button class="action-btn"><i class="fas fa-share-alt"></i></button>
+                        <button class="action-btn"><i class="fas fa-expand"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Architecture -->
+            <div class="gallery-item" data-category="architecture">
+                <img src="ar2.avif" alt="Historical building">
+                <div class="item-info">
+                    <span class="item-category">Architecture</span>
+                    <h3 class="item-title">Historical Landmark</h3>
+                    <p>Ancient architecture standing the test of time</p>
+                    <div class="item-actions">
+                        <button class="action-btn"><i class="far fa-heart"></i></button>
+                        <button class="action-btn"><i class="fas fa-share-alt"></i></button>
+                        <button class="action-btn"><i class="fas fa-expand"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- People -->
+            <div class="gallery-item" data-category="people">
+                <img src="pp2.avif" alt="Portrait">
+                <div class="item-info">
+                    <span class="item-category">People</span>
+                    <h3 class="item-title">Character Study</h3>
+                    <p>Portraits that tell a story without words</p>
+                    <div class="item-actions">
+                        <button class="action-btn"><i class="far fa-heart"></i></button>
+                        <button class="action-btn"><i class="fas fa-share-alt"></i></button>
+                        <button class="action-btn"><i class="fas fa-expand"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Animals -->
+            <div class="gallery-item" data-category="animals">
+                <img src="animal2.avif" alt="Wild bird">
+                <div class="item-info">
+                    <span class="item-category">Animals</span>
+                    <h3 class="item-title">Feathered Friends</h3>
+                    <p>Colorful birds in their natural environment</p>
+                    <div class="item-actions">
+                        <button class="action-btn"><i class="far fa-heart"></i></button>
+                        <button class="action-btn"><i class="fas fa-share-alt"></i></button>
+                        <button class="action-btn"><i class="fas fa-expand"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Food -->
+            <div class="gallery-item" data-category="food">
+                <img src="https://source.unsplash.com/random/600x600/?food,dessert" alt="Dessert">
+                <div class="item-info">
+                    <span class="item-category">Food</span>
+                    <h3 class="item-title">Sweet Indulgence</h3>
+                    <p>Decadent desserts that tempt the taste buds</p>
+                    <div class="item-actions">
+                        <button class="action-btn"><i class="far fa-heart"></i></button>
+                        <button class="action-btn"><i class="fas fa-share-alt"></i></button>
+                        <button class="action-btn"><i class="fas fa-expand"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="no-results">
+                <i class="fas fa-image" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                <h3>No images found</h3>
+                <p>Try adjusting your search or filter criteria</p>
+            </div>
+        </div>
+    </div>
+    <div class="lightbox">
+        <span class="close-lightbox"><i class="fas fa-times"></i></span>
+        <span class="lightbox-nav lightbox-prev"><i class="fas fa-chevron-left"></i></span>
+        <span class="lightbox-nav lightbox-next"><i class="fas fa-chevron-right"></i></span>
+        <div class="lightbox-content">
+            <img src="" alt="Expanded view">
+        </div>
+        <div class="lightbox-counter"></div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const lightbox = document.querySelector('.lightbox');
+            const lightboxImg = lightbox.querySelector('img');
+            const closeLightbox = document.querySelector('.close-lightbox');
+            const prevBtn = document.querySelector('.lightbox-prev');
+            const nextBtn = document.querySelector('.lightbox-next');
+            const counter = document.querySelector('.lightbox-counter');
+
+            // Get all gallery items
+            const galleryItems = Array.from(document.querySelectorAll('.gallery-item'));
+            let currentIndex = 0;
+
+            // Open lightbox
+            function openLightbox(index) {
+                currentIndex = index;
+                const imgSrc = galleryItems[index].querySelector('img').src;
+                lightboxImg.src = imgSrc;
+                updateCounter();
+                lightbox.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+
+            // Update counter
+            function updateCounter() {
+                counter.textContent = `${currentIndex + 1} / ${galleryItems.length}`;
+            }
+
+            // Close lightbox
+            function closeLightboxFunc() {
+                lightbox.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+
+            // Navigate to next image
+            function nextImage() {
+                currentIndex = (currentIndex + 1) % galleryItems.length;
+                lightboxImg.style.animation = 'fadeIn 0.3s ease';
+                openLightbox(currentIndex);
+                setTimeout(() => {
+                    lightboxImg.style.animation = '';
+                }, 300);
+            }
+
+            // Navigate to previous image
+            function prevImage() {
+                currentIndex = (currentIndex - 1 + galleryItems.length) % galleryItems.length;
+                lightboxImg.style.animation = 'fadeIn 0.3s ease';
+                openLightbox(currentIndex);
+                setTimeout(() => {
+                    lightboxImg.style.animation = '';
+                }, 300);
+            }
+
+            // Event listeners for expand buttons
+            document.querySelectorAll('.action-btn .fa-expand').forEach((btn, index) => {
+                btn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    openLightbox(index);
+                });
+            });
+
+            // Close lightbox events
+            closeLightbox.addEventListener('click', closeLightboxFunc);
+            lightbox.addEventListener('click', (e) => {
+                if (e.target === lightbox) {
+                    closeLightboxFunc();
+                }
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (!lightbox.classList.contains('active')) return;
+
+                if (e.key === 'Escape') {
+                    closeLightboxFunc();
+                } else if (e.key === 'ArrowRight') {
+                    nextImage();
+                } else if (e.key === 'ArrowLeft') {
+                    prevImage();
+                }
+            });
+
+            // Navigation buttons
+            nextBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                nextImage();
+            });
+
+            prevBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                prevImage();
+            });
+
+            // Swipe support for touch devices
+            let touchStartX = 0;
+            let touchEndX = 0;
+
+            lightbox.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+
+            lightbox.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            }, { passive: true });
+
+            function handleSwipe() {
+                if (touchEndX < touchStartX - 50) {
+                    nextImage();
+                }
+                if (touchEndX > touchStartX + 50) {
+                    prevImage();
+                }
+            }
+        });
+
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            const galleryItems = document.querySelectorAll('.gallery-item');
+            const searchInput = document.querySelector('.search-input');
+            const noResults = document.querySelector('.no-results');
+
+            // Gaslight effect - track mouse position for each item
+            galleryItems.forEach(item => {
+                item.addEventListener('mousemove', (e) => {
+                    const rect = item.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    item.style.setProperty('--x', `${x}px`);
+                    item.style.setProperty('--y', `${y}px`);
+                });
+            });
+
+            // Filter functionality
+            filterButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Update active button
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+
+                    // Filter items
+                    const filterValue = button.dataset.filter;
+                    filterItems(filterValue, searchInput.value);
+                });
+            });
+
+            // Search functionality
+            searchInput.addEventListener('input', () => {
+                const activeFilter = document.querySelector('.filter-btn.active').dataset.filter;
+                filterItems(activeFilter, searchInput.value);
+            });
+
+            function filterItems(filter, searchTerm) {
+                let visibleItems = 0;
+
+                galleryItems.forEach(item => {
+                    const matchesFilter = filter === 'all' || item.dataset.category === filter;
+                    const matchesSearch = item.querySelector('.item-title').textContent.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        item.querySelector('p').textContent.toLowerCase().includes(searchTerm.toLowerCase());
+
+                    if (matchesFilter && matchesSearch) {
+                        item.style.display = 'block';
+                        visibleItems++;
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+
+                // Show/hide no results message
+                if (visibleItems === 0) {
+                    noResults.classList.add('show');
+                } else {
+                    noResults.classList.remove('show');
+                }
+            }
+
+            // Action buttons functionality
+            document.querySelectorAll('.action-btn').forEach(button => {
+                button.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    const icon = this.querySelector('i');
+
+                    // Simple toggle for demo purposes
+                    if (icon.classList.contains('fa-heart')) {
+                        icon.classList.toggle('far');
+                        icon.classList.toggle('fas');
+
+                        // Add animation
+                        if (icon.classList.contains('fas')) {
+                            this.style.animation = 'heartBeat 0.5s';
+                            setTimeout(() => {
+                                this.style.animation = '';
+                            }, 500);
+                        }
+                    } else if (icon.classList.contains('fa-expand')) {
+                        // In a real implementation, this would open a modal or lightbox
+                        alert('Expanding image view would go here');
+                    } else if (icon.classList.contains('fa-share-alt')) {
+                        // In a real implementation, this would open a share dialog
+                        alert('Share functionality would go here');
+                    }
+                });
+            });
+
+            // Add simple animation for action buttons
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes heartBeat {
+                    0% { transform: scale(1); }
+                    25% { transform: scale(1.3); }
+                    50% { transform: scale(1); }
+                    75% { transform: scale(1.3); }
+                    100% { transform: scale(1); }
+                }
+            `;
+            document.head.appendChild(style);
+        });
+    </script>
+</body>
+
+</html>
